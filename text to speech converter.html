@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Text to Speech Converter</title>
+
+  <style>
+    * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 2.2em;
+}
+
+p {
+    text-align: center;
+    color: #666;
+    margin-bottom: 30px;
+}
+
+.converter-box {
+    background: #f8f9fa;
+    padding: 25px;
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+}
+
+textarea {
+    width: 100%;
+    height: 150px;
+    padding: 15px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    resize: vertical;
+    margin-bottom: 20px;
+    font-family: inherit;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.controls {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 15px;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+label {
+    font-weight: 600;
+    color: #333;
+}
+
+select, input[type="range"] {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background: white;
+}
+
+input[type="range"] {
+    width: 100%;
+}
+
+.buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.speak {
+    background: #28a745;
+    color: white;
+}
+
+.speak:hover {
+    background: #218838;
+}
+
+.pause {
+    background: #ffc107;
+    color: black;
+}
+
+.pause:hover {
+    background: #e0a800;
+}
+
+.resume {
+    background: #17a2b8;
+    color: white;
+}
+
+.resume:hover {
+    background: #138496;
+}
+
+.stop {
+    background: #dc3545;
+    color: white;
+}
+
+.stop:hover {
+    background: #c82333;
+}
+
+.btn:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+.info {
+    margin-top: 20px;
+    padding: 15px;
+    background: #d1ecf1;
+    border-radius: 8px;
+    border-left: 4px solid #17a2b8;
+}
+
+.info p {
+    margin: 0;
+    color: #0c5460;
+    text-align: left;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    .container {
+        padding: 20px;
+        margin: 10px;
+    }
+    
+    .controls {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .buttons {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+    
+    h1 {
+        font-size: 1.8em;
+    }
+}
+  </style>
+
+  
+</head>
+<body>
+  <link rel="stylesheet" href="style.css">
+
+
+    <div class="container">
+        <h1>🔊 Text to Speech Converter</h1>
+        <p>Type your text below and convert it to speech</p>
+        
+        <div class="converter-box">
+            <textarea id="textInput" placeholder="Enter your text here..."></textarea>
+            
+            <div class="controls">
+                <label for="voiceSelect">Select Voice:</label>
+                <select id="voiceSelect">
+                    <option value="">Default Voice</option>
+                </select>
+                
+                <label for="rate">Speed:</label>
+                <input type="range" id="rate" min="0.5" max="2" step="0.1" value="1">
+                <span id="rateValue">1</span>
+                
+                <label for="pitch">Pitch:</label>
+                <input type="range" id="pitch" min="0.5" max="2" step="0.1" value="1">
+                <span id="pitchValue">1</span>
+            </div>
+            
+            <div class="buttons">
+                <button id="speakBtn" class="btn speak">Speak</button>
+                <button id="pauseBtn" class="btn pause">Pause</button>
+                <button id="resumeBtn" class="btn resume">Resume</button>
+                <button id="stopBtn" class="btn stop">Stop</button>
+            </div>
+        </div>
+        
+        <div class="info">
+            <p><strong>Tip:</strong> You can adjust speed and pitch for better voice quality</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+
+  <script>
+    // Text to Speech functionality
+class TextToSpeech {
+    constructor() {
+        this.synth = window.speechSynthesis;
+        this.utterance = null;
+        this.isSpeaking = false;
+        this.isPaused = false;
+        
+        this.initializeElements();
+        this.loadVoices();
+        this.setupEventListeners();
+    }
+
+    initializeElements() {
+        this.textInput = document.getElementById('textInput');
+        this.voiceSelect = document.getElementById('voiceSelect');
+        this.rate = document.getElementById('rate');
+        this.pitch = document.getElementById('pitch');
+        this.rateValue = document.getElementById('rateValue');
+        this.pitchValue = document.getElementById('pitchValue');
+        this.speakBtn = document.getElementById('speakBtn');
+        this.pauseBtn = document.getElementById('pauseBtn');
+        this.resumeBtn = document.getElementById('resumeBtn');
+        this.stopBtn = document.getElementById('stopBtn');
+    }
+
+    loadVoices() {
+        // Load voices when they become available
+        const loadVoiceList = () => {
+            const voices = this.synth.getVoices();
+            this.voiceSelect.innerHTML = '<option value="">Default Voice</option>';
+            
+            voices.forEach(voice => {
+                const option = document.createElement('option');
+                option.value = voice.name;
+                option.textContent = `${voice.name} (${voice.lang})`;
+                this.voiceSelect.appendChild(option);
+            });
+        };
+
+        loadVoiceList();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = loadVoiceList;
+        }
+    }
+
+    setupEventListeners() {
+        // Speak button
+        this.speakBtn.addEventListener('click', () => {
+            this.speakText();
+        });
+
+        // Pause button
+        this.pauseBtn.addEventListener('click', () => {
+            this.pauseSpeech();
+        });
+
+        // Resume button
+        this.resumeBtn.addEventListener('click', () => {
+            this.resumeSpeech();
+        });
+
+        // Stop button
+        this.stopBtn.addEventListener('click', () => {
+            this.stopSpeech();
+        });
+
+        // Rate change
+        this.rate.addEventListener('input', () => {
+            this.rateValue.textContent = this.rate.value;
+        });
+
+        // Pitch change
+        this.pitch.addEventListener('input', () => {
+            this.pitchValue.textContent = this.pitch.value;
+        });
+
+        // Enter key to speak
+        this.textInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                this.speakText();
+            }
+        });
+    }
+
+    speakText() {
+        const text = this.textInput.value.trim();
+        
+        if (text === '') {
+            alert('Please enter some text to convert to speech.');
+            return;
+        }
+
+        // Stop any ongoing speech
+        this.stopSpeech();
+
+        // Create new utterance
+        this.utterance = new SpeechSynthesisUtterance(text);
+        
+        // Set voice
+        const selectedVoice = this.voiceSelect.value;
+        if (selectedVoice) {
+            const voices = this.synth.getVoices();
+            const voice = voices.find(v => v.name === selectedVoice);
+            if (voice) {
+                this.utterance.voice = voice;
+            }
+        }
+
+        // Set rate and pitch
+        this.utterance.rate = parseFloat(this.rate.value);
+        this.utterance.pitch = parseFloat(this.pitch.value);
+
+        // Event listeners for utterance
+        this.utterance.onstart = () => {
+            this.isSpeaking = true;
+            this.updateButtonStates();
+        };
+
+        this.utterance.onend = () => {
+            this.isSpeaking = false;
+            this.isPaused = false;
+            this.updateButtonStates();
+        };
+
+        this.utterance.onerror = (event) => {
+            console.error('Speech synthesis error:', event);
+            this.isSpeaking = false;
+            this.isPaused = false;
+            this.updateButtonStates();
+            alert('Error occurred while converting text to speech.');
+        };
+
+        // Start speaking
+        this.synth.speak(this.utterance);
+    }
+
+    pauseSpeech() {
+        if (this.isSpeaking && !this.isPaused) {
+            this.synth.pause();
+            this.isPaused = true;
+            this.updateButtonStates();
+        }
+    }
+
+    resumeSpeech() {
+        if (this.isSpeaking && this.isPaused) {
+            this.synth.resume();
+            this.isPaused = false;
+            this.updateButtonStates();
+        }
+    }
+
+    stopSpeech() {
+        this.synth.cancel();
+        this.isSpeaking = false;
+        this.isPaused = false;
+        this.updateButtonStates();
+    }
+
+    updateButtonStates() {
+        this.speakBtn.disabled = this.isSpeaking && !this.isPaused;
+        this.pauseBtn.disabled = !this.isSpeaking || this.isPaused;
+        this.resumeBtn.disabled = !this.isPaused;
+        this.stopBtn.disabled = !this.isSpeaking;
+    }
+}
+
+// Initialize the Text to Speech converter when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    new TextToSpeech();
+});
+
+// Add some sample text for testing
+document.addEventListener('DOMContentLoaded', () => {
+    const textInput = document.getElementById('textInput');
+    textInput.placeholder = "Welcome to Text to Speech Converter! Type your text here and click Speak to hear it. You can adjust the voice, speed, and pitch settings for better experience.";
+});
+  </script>
+</body>
+</html>
